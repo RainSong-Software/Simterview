@@ -7,9 +7,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 
-//sim coin elite: prod_SJkaG3X80Thz0U
-//sim coin pro: prod_SJkZSgqJQ7ttyV
-//sim coin starter: prod_SJkWmvkB9es9RJ
 
 export async function POST(req: Request) {
     try {

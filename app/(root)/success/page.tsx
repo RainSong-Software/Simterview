@@ -2,6 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, updateDoc, increment } from "firebase/firestore";
+import {auth, db} from '../../../firebase/client';
 
 export default function SuccessPage() {
   const searchParams = useSearchParams();
@@ -9,14 +13,46 @@ export default function SuccessPage() {
   const [message, setMessage] = useState("Processing your payment...");
 
   useEffect(() => {
-    if (!sessionId) return;
+    const fetchAndCreditSimcoins = async () => {
+      if (!sessionId) {
+        setMessage("❌ No session ID found.");
+        return;
+      }
 
-    // Eventually: use sessionId to fetch Stripe details
-    console.log("Received session ID:", sessionId);
+      try {
+        // 1. Fetch session details from your API route
+        const res = await fetch(`/api/retrieve-checkout-session?session_id=${sessionId}`);
+        const data = await res.json();
 
-    // For now: show simple confirmation
-    setMessage("✅ Thank you! Your SimCoins will be added shortly.");
+        if (data.error) throw new Error(data.error);
+        const { simcoins } = data;
+
+        // 2. Wait for Firebase Auth to confirm the user
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            setMessage("❌ You must be signed in to receive SimCoins.");
+            return;
+          }
+
+          // 3. Update user's balance in Firestore
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, {
+            coinCount: increment(simcoins),
+          });
+
+          setMessage(`✅ Thank you! ${simcoins} SimCoins have been added to your account.`);
+        });
+
+        return () => unsubscribe(); // cleanup listener
+      } catch (err) {
+        console.error("Error updating SimCoins:", err);
+        setMessage("❌ Something went wrong. Please contact support.");
+      }
+    };
+
+    fetchAndCreditSimcoins();
   }, [sessionId]);
+
 
   return (
     <main className="max-w-xl mx-auto p-6 text-center">
