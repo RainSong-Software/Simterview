@@ -20,19 +20,19 @@ const bundles = [
     name: "Starter",
     simcoins: 60,
     price: "$5",
-    priceId: "price_1RP71RR45bGJSB8tedtkHfcj", // 🔁 Replace with your real Stripe price ID
+    priceId: "price_1RSmQ91aYZsZjxD5M0WBzr2U", // 🔁 Replace with your real Stripe price ID
   },
   {
     name: "Pro",
     simcoins: 150,
     price: "$12",
-    priceId: "price_1RP74TR45bGJSB8tVsKVCLmD", // 🔁 Replace with your real Stripe price ID
+    priceId: "price_1RSmQ71aYZsZjxD5rHrVkdIG", // 🔁 Replace with your real Stripe price ID
   },
   {
     name: "Elite",
     simcoins: 400,
     price: "$30",
-    priceId: "price_1RP75DR45bGJSB8tngIomfhM", // 🔁 Replace with your real Stripe price ID
+    priceId: "price_1RSmQ61aYZsZjxD53VL9ZAWT", // 🔁 Replace with your real Stripe price ID
   },
 ];
 
