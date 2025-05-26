@@ -192,26 +192,40 @@ function DemoDeepgramInterview() {
   useEffect(() => {
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        const initialSettings = JSON.parse(JSON.stringify(stsConfig));
-
-        if (initialSettings.agent && initialSettings.agent.think) {
-          initialSettings.agent.think.prompt = demoSystemPrompt;
-          initialSettings.agent.think.provider = {
-            ...(initialSettings.agent.think.provider || {}),
-             model: "gpt-4.1-mini"
-          };
-          setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
-        }
-        if (initialSettings.agent?.think?.functions) {
-          delete initialSettings.agent.think.functions;
-        }
+        // System prompt for the demo
         
-        let combinedStsConfig = initialSettings;
-        if (applyParamsToConfig) {
-          combinedStsConfig = applyParamsToConfig(initialSettings);
-          combinedStsConfig.agent.greeting = "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!";
+        if (stsConfig.context) {
+          delete stsConfig.context;
         }
 
+        const interviewStsConfig = {
+          ...stsConfig,
+          agent: {
+            ...stsConfig.agent,
+            think: {
+              ...stsConfig.agent.think,
+              instructions: demoSystemPrompt, // Use the new demo prompt
+            },
+          },
+          context: {
+            messages: [
+              {
+                content:
+                  "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!",
+                role: "assistant",
+              },
+            ],
+            replay: true,
+          },
+        };
+
+        // Remove functions for the demo instance
+        if (interviewStsConfig.agent?.think?.functions) {
+          delete interviewStsConfig.agent.think.functions;
+        }
+
+        const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
+        // Send the configuration first
         sendSocketMessage(socket, combinedStsConfig);
 
         setTimeout(() => {

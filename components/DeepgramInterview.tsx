@@ -231,14 +231,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); }
           setInterviewReady(true);
           setTime(interviewDetails.data.length * 60);
-          const behavioral = interviewDetails.data.type === "Behavioral" || interviewDetails.data.type === "behavioral";
-          setIsBehavioral(behavioral);
+          setIsBehavioral(interviewDetails.data.type === "behavioral");
 
-          const basePrompt = behavioral ? behavioralSystemPrompt : technicalSystemPrompt;
-          const interviewDetailsSystemPrompt = `\\n\\n\\nINTERVIEW CONTENTS: \\n\\nInterview level = ${interviewDetails.data.difficulty} Interview type = ${interviewDetails.data.type}, Interview length = ${interviewDetails.data.length} minutes, Interview questions:\\n ${interviewDetails.data.questions.join('\\n')} \\n${interviewDetails.data.editorial === "" || !interviewDetails.data.editorial ? "" : "editorial solution:\\n" + interviewDetails.data.editorial}`;
-          setFullSystemPrompt(basePrompt + interviewDetailsSystemPrompt);
-          
-          setCurrentAgentThinkProvider(stsConfig.agent?.think?.provider);
+          // Create custom system prompt based on interview details
+          const interviewDetailsSystemPrompt = `\n\n\nINTERVIEW CONTENTS: \n\nInterview level = ${interviewDetails.data.difficulty} Interview type = ${interviewDetails.data.type}, Interview length = ${interviewDetails.data.length} minutes, Interview questions:\n ${interviewDetails.data.questions.join('\n')} \n${interviewDetails.data.editorial === "" || !interviewDetails.data.editorial ? "" : "editorial solution:\n" + interviewDetails.data.editorial}`;
+          setFullSystemPrompt((interviewDetails.data.type === "behavioral" ? behavioralSystemPrompt : technicalSystemPrompt) + interviewDetailsSystemPrompt);
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -323,30 +320,22 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   useEffect(() => {
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        // Base V1 settings structure from deepgramConstants.ts
-        // Override prompt and model based on interview type
-        const initialSettings = JSON.parse(JSON.stringify(stsConfig)); // Deep clone
-
-        if (initialSettings.agent && initialSettings.agent.think) {
-          initialSettings.agent.think.prompt = fullSystemPrompt;
-          console.log("initialSettings.agent.think.prompt", initialSettings.agent.think.prompt);
-          // Model selection based on interview type
-          // trained model: ft:gpt-4.1-2025-04-14:rainsong:technical2:BaRmqRor
-          initialSettings.agent.think.provider.model = isBehavioral ? "gpt-4.1-mini" : "gpt-4.1"; 
-           // Store the potentially modified provider for later use in prompt updates
-           setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
-        }
+        // Modify the default STS config to include interview details
+        console.log("Full system prompt: " + fullSystemPrompt);
+        const interviewStsConfig = {
+          ...stsConfig,
+          agent: {
+            ...stsConfig.agent,
+            think: {
+              ...stsConfig.agent.think,
+              instructions: (fullSystemPrompt),
+            }
+          }
+        };
         
-        // applyParamsToConfig MIGHT modify voice (speak.provider.model) or initial prompt (think.prompt)
-        // Ensure applyParamsToConfig is V1 aware if it modifies these directly.
-        // For now, we assume it returns params that are handled elsewhere or it modifies a V1 config.
-        // If applyParamsToConfig is meant to set the *initial* voice/prompt from query params:
-        let combinedStsConfig = initialSettings;
-        if (applyParamsToConfig) { // Check if hook and function exist
-            // This function needs to be V1 compatible if it directly mutates the config
-            // e.g., changing combinedStsConfig.agent.think.prompt or combinedStsConfig.agent.speak.provider.model
-            combinedStsConfig = applyParamsToConfig(initialSettings);
-        }
+        const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
+        
+        // Send the configuration first
         sendSocketMessage(socket, combinedStsConfig);
         
         setTimeout(() => {
