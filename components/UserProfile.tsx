@@ -6,9 +6,12 @@ import { toast } from 'sonner'
 
 
 const UserProfile = ({name, email, coinCount, id, createdAt}: User) => {
+
+  /**
+   * Function redirects user to simcoins purchasing page upon click
+   */
   function handlePurchaseClick(){
     window.location.href="/simcoins";
-    // toast.message("Purchase feature is still under development. Coming soon!");
   }
 
   return (
