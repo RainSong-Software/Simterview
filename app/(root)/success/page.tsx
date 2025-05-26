@@ -7,6 +7,15 @@ import { onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, updateDoc, increment } from "firebase/firestore";
 import {auth, db} from '../../../firebase/client';
 
+/**
+ * SuccessPage component handles post-payment logic
+ * It:
+ * 1. Extracts the session_id from the URL
+ * 2. Fetches session details from an API route.
+ * 3. Credits SimCoins to the authenticated user's Firestore document.
+ * 4. Displays a success or error message. 
+ * @returns 
+ */
 export default function SuccessPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -20,21 +29,21 @@ export default function SuccessPage() {
       }
 
       try {
-        // 1. Fetch session details from your API route
+        //Fetch session details from API route: retreive-checkout session
         const res = await fetch(`/api/retrieve-checkout-session?session_id=${sessionId}`);
         const data = await res.json();
 
         if (data.error) throw new Error(data.error);
         const { simcoins } = data;
 
-        // 2. Wait for Firebase Auth to confirm the user
+        // Wait for Firebase Auth to confirm the user
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
           if (!user) {
             setMessage("❌ You must be signed in to receive SimCoins.");
             return;
           }
 
-          // 3. Update user's balance in Firestore
+          // Update user's balance in Firestore
           const userRef = doc(db, "users", user.uid);
           await updateDoc(userRef, {
             coinCount: increment(simcoins),

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-// If you're not using a design system like shadcn/ui, this simple button will do:
+/**
+ * A reusable button component with basic styling
+ * @param onClick = Function to execute on button click
+ * @param children - Button label or nested components
+ * @returns 
+ */
 function Button({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -14,31 +19,39 @@ function Button({ onClick, children }: { onClick: () => void; children: React.Re
   );
 }
 
-// Define the available bundles
+// SimCoin purchase bundles available to users 
 const bundles = [
   {
     name: "Starter",
     simcoins: 60,
     price: "$5",
-    priceId: "price_1RSmQ91aYZsZjxD5M0WBzr2U", // 🔁 Replace with your real Stripe price ID
+    priceId: "price_1RSmQ91aYZsZjxD5M0WBzr2U", //price ID from Stripe 
   },
   {
     name: "Pro",
     simcoins: 150,
     price: "$12",
-    priceId: "price_1RSmQ71aYZsZjxD5rHrVkdIG", // 🔁 Replace with your real Stripe price ID
-  },
+    priceId: "price_1RSmQ71aYZsZjxD5rHrVkdIG", //price ID from Stripe 
   {
     name: "Elite",
     simcoins: 400,
     price: "$30",
-    priceId: "price_1RSmQ61aYZsZjxD53VL9ZAWT", // 🔁 Replace with your real Stripe price ID
+    priceId: "price_1RSmQ61aYZsZjxD53VL9ZAWT", //price ID from Stripe 
   },
 ];
 
+/**
+ * SimCoinPage component renders a UI where users can purchase SimCoins
+ * through different pricing tiers using Stripe Checkout
+ */
 export default function SimCoinPage() {
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Sends a request to the backend to create a Stripe Checkout session.
+   * Redirects the user to Stripe on success. 
+   * @param priceId = Stripe price ID for the selected bundle  
+   */
   const handleBuy = async (priceId: string) => {
     setLoading(true);
     try {
