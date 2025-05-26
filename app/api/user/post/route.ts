@@ -32,7 +32,8 @@ export async function POST(request: Request) {
     }
     
     const userRef = db.collection('users').doc(userId);
-    await userRef.update({coinCount: (coinCount-coinCost)});
+    const newCoinCount = Math.max(0, coinCount - coinCost);
+    await userRef.update({coinCount: newCoinCount});
     
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
