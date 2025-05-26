@@ -32,6 +32,7 @@ const bundles = [
     simcoins: 150,
     price: "$12",
     priceId: "price_1RSmQ71aYZsZjxD5rHrVkdIG", //price ID from Stripe 
+  }, 
   {
     name: "Elite",
     simcoins: 400,
