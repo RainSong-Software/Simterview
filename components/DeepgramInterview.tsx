@@ -53,12 +53,12 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   } = useMicrophone();
 
   // Deepgram context
-  const { 
-    socket, 
-    connectToDeepgram, 
-    disconnectFromDeepgram, 
+  const {
+    socket,
+    connectToDeepgram,
+    disconnectFromDeepgram,
     socketState,
-    manuallyDisconnected 
+    manuallyDisconnected
   } = useDeepgram();
 
   // Query params for voice/instructions
@@ -105,33 +105,33 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const cleanupAndNavigate = useCallback((destinationUrl: string, skipNavigation: boolean = false) => {
     try {
       // Deduct coins and clean up
-      const minutesLeft = Math.floor(time/60);
+      const minutesLeft = Math.floor(time / 60);
       const coinCost = Math.max(0, interviewLength - minutesLeft);
       console.log(`Leaving interview... Deducting ${coinCost} coins`);
-      
+
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/user/post', false); // synchronous
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
-      
+
       if (userInactivityTimer.current) {
         clearInterval(userInactivityTimer.current);
         userInactivityTimer.current = null;
       }
-      
+
       if (keepAliveTimer.current) {
         clearInterval(keepAliveTimer.current);
         keepAliveTimer.current = null;
       }
-      
+
       if (stopMicrophone) {
         stopMicrophone();
       }
-      
+
       if (disconnectFromDeepgram) {
         disconnectFromDeepgram();
       }
-      
+
       scheduledAudioSources.current.forEach(source => {
         if (source) {
           try {
@@ -143,7 +143,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         }
       });
       scheduledAudioSources.current = [];
-      
+
       if (audioContext.current && audioContext.current.state !== 'closed') {
         try {
           audioContext.current.suspend();
@@ -151,7 +151,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           // Ignore errors during cleanup
         }
       }
-      
+
       if (!skipNavigation) {
         window.location.href = destinationUrl;
       } else {
@@ -222,7 +222,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     async function getInterviewDetails() {
       try {
         const interviewDetails = await getInterview(interviewId);
-        
+
         if (interviewDetails.data && (interviewDetails.data.createdBy === userId || interviewDetails.data.createdBy === "Simterview")) {
           setInterviewDifficulty(interviewDetails.data.difficulty);
           setInterviewType(interviewDetails.data.type);
@@ -231,11 +231,14 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); }
           setInterviewReady(true);
           setTime(interviewDetails.data.length * 60);
-          setIsBehavioral(interviewDetails.data.type === "behavioral");
+          const behavioral = interviewDetails.data.type === "Behavioral" || interviewDetails.data.type === "behavioral";
+          setIsBehavioral(behavioral);
 
-          // Create custom system prompt based on interview details
-          const interviewDetailsSystemPrompt = `\n\n\nINTERVIEW CONTENTS: \n\nInterview level = ${interviewDetails.data.difficulty} Interview type = ${interviewDetails.data.type}, Interview length = ${interviewDetails.data.length} minutes, Interview questions:\n ${interviewDetails.data.questions.join('\n')} \n${interviewDetails.data.editorial === "" || !interviewDetails.data.editorial ? "" : "editorial solution:\n" + interviewDetails.data.editorial}`;
-          setFullSystemPrompt((interviewDetails.data.type === "behavioral" ? behavioralSystemPrompt : technicalSystemPrompt) + interviewDetailsSystemPrompt);
+          const basePrompt = behavioral ? behavioralSystemPrompt : technicalSystemPrompt;
+          const interviewDetailsSystemPrompt = `\\n\\n\\nINTERVIEW CONTENTS: \\n\\nInterview level = ${interviewDetails.data.difficulty} Interview type = ${interviewDetails.data.type}, Interview length = ${interviewDetails.data.length} minutes, Interview questions:\\n ${interviewDetails.data.questions.join('\\n')} \\n${interviewDetails.data.editorial === "" || !interviewDetails.data.editorial ? "" : "editorial solution:\\n" + interviewDetails.data.editorial}`;
+          setFullSystemPrompt(basePrompt + interviewDetailsSystemPrompt);
+
+          setCurrentAgentThinkProvider(stsConfig.agent?.think?.provider);
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -276,7 +279,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       });
     }
   }, [setupMicrophone, microphoneState]);
-  
+
   useEffect(() => {
     if (microphoneState === 1) {
       setMicPermissionDenied(false);
@@ -320,24 +323,32 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   useEffect(() => {
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        // Modify the default STS config to include interview details
-        console.log("Full system prompt: " + fullSystemPrompt);
-        const interviewStsConfig = {
-          ...stsConfig,
-          agent: {
-            ...stsConfig.agent,
-            think: {
-              ...stsConfig.agent.think,
-              instructions: (fullSystemPrompt),
-            }
-          }
-        };
-        
-        const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
-        
-        // Send the configuration first
+        // Base V1 settings structure from deepgramConstants.ts
+        // Override prompt and model based on interview type
+        const initialSettings = JSON.parse(JSON.stringify(stsConfig)); // Deep clone
+
+        if (initialSettings.agent && initialSettings.agent.think) {
+          initialSettings.agent.think.prompt = fullSystemPrompt;
+          console.log("initialSettings.agent.think.prompt", initialSettings.agent.think.prompt);
+          // Model selection based on interview type
+          // trained model: ft:gpt-4.1-2025-04-14:rainsong:technical2:BaRmqRor
+          initialSettings.agent.think.provider.model = isBehavioral ? "gpt-4.1-mini" : "gpt-4.1";
+          // Store the potentially modified provider for later use in prompt updates
+          setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
+        }
+
+        // applyParamsToConfig MIGHT modify voice (speak.provider.model) or initial prompt (think.prompt)
+        // Ensure applyParamsToConfig is V1 aware if it modifies these directly.
+        // For now, we assume it returns params that are handled elsewhere or it modifies a V1 config.
+        // If applyParamsToConfig is meant to set the *initial* voice/prompt from query params:
+        let combinedStsConfig = initialSettings;
+        if (applyParamsToConfig) { // Check if hook and function exist
+          // This function needs to be V1 compatible if it directly mutates the config
+          // e.g., changing combinedStsConfig.agent.think.prompt or combinedStsConfig.agent.speak.provider.model
+          combinedStsConfig = applyParamsToConfig(initialSettings);
+        }
         sendSocketMessage(socket, combinedStsConfig);
-        
+
         setTimeout(() => {
           console.log("Starting microphone after configuration sent");
           if (startMicrophone) startMicrophone();
@@ -366,7 +377,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (!processor) return;
     if (microphoneState !== 2) return;
     if (socketState !== 1) return;
-    
+
     if (settingsApplied) {
       console.log("Connecting audio processor after settings were applied");
       processor.onaudioprocess = sendMicToSocket(socket);
@@ -385,18 +396,18 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   useEffect(() => {
     if (microphoneAudioContext && microphone && userVoiceAnalyser.current === null) { // Check if already created
-        const newAnalyser = microphoneAudioContext.createAnalyser();
-        newAnalyser.fftSize = 2048;
-        newAnalyser.smoothingTimeConstant = 0.96;
-        microphone.connect(newAnalyser);
-        userVoiceAnalyser.current = newAnalyser;
+      const newAnalyser = microphoneAudioContext.createAnalyser();
+      newAnalyser.fftSize = 2048;
+      newAnalyser.smoothingTimeConstant = 0.96;
+      microphone.connect(newAnalyser);
+      userVoiceAnalyser.current = newAnalyser;
     }
   }, [microphoneAudioContext, microphone]);
-  
+
   useEffect(() => {
     if (
-      !isDisconnected && 
-      !manuallyDisconnected && 
+      !isDisconnected &&
+      !manuallyDisconnected &&
       microphoneState === 1 &&
       socketState === -1 &&
       isInitialized &&
@@ -421,20 +432,20 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       console.error("No audio context available for buffering");
       return;
     }
-    
+
     if (audioContext.current.state === 'suspended') {
       audioContext.current.resume().catch(err => {
         console.error("Failed to resume audio context:", err);
       });
     }
-    
+
     const audioBuffer = createAudioBuffer(audioContext.current, audioData);
-    
+
     if (!audioBuffer) {
       console.error("Failed to create audio buffer from data");
       return;
     }
-    
+
     try {
       const source = playAudioBuffer(audioContext.current, audioBuffer, startTimeRef, agentVoiceAnalyser.current);
       scheduledAudioSources.current.push(source);
@@ -497,7 +508,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
     previousVoiceRef.current = voice;
   }, [voice, socket, socketState, settingsApplied]);
-  
+
   useEffect(() => {
     if (status === VoiceBotStatus.LISTENING && socket && socketState === 1 && processor) {
       if (audioContext.current && audioContext.current.state !== 'running') {
@@ -505,7 +516,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           console.error("Failed to resume audio context after wake:", err);
         });
       }
-      
+
       if (!processor.onaudioprocess && !isMicManuallyMuted) {
         console.log("Reconnecting audio processor after state change (not manually muted)");
         processor.onaudioprocess = sendMicToSocket(socket);
@@ -541,17 +552,17 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       try {
         const parsedData = JSON.parse(data);
 
-        if (!parsedData || !parsedData.type) { 
+        if (!parsedData || !parsedData.type) {
           if (data.trim() !== "") {
-             console.log("Received non-JSON or typeless message:", data);
+            console.log("Received non-JSON or typeless message:", data);
           }
           return;
         }
-        
+
         console.log("Processing message type:", parsedData.type, parsedData);
 
         switch (parsedData.type) {
-          case "Welcome": 
+          case "Welcome":
             console.log("Welcome message received, request_id:", parsedData.request_id);
             break;
           case EventType.SETTINGS_APPLIED:
@@ -571,7 +582,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           case EventType.AGENT_THINKING:
             console.log("Agent is thinking...");
             break;
-          case "Error": 
+          case "Error":
             console.error("Deepgram Agent Error:", parsedData.description, "Code:", parsedData.code);
             toast.error(`Agent Error: ${parsedData.description} (Code: ${parsedData.code})`);
             break;
@@ -595,7 +606,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
               clearAudioBuffer();
             } else if (parsedData.type === EventType.AGENT_STARTED_SPEAKING) {
               const { tts_latency, ttt_latency, total_latency } = parsedData;
-              if (tts_latency && ttt_latency) { 
+              if (tts_latency && ttt_latency) {
                 addVoicebotMessage({ tts_latency, ttt_latency, total_latency });
               }
             } else if (parsedData.type === EventType.FUNCTION_CALL_REQUEST) {
@@ -607,17 +618,17 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
                     try {
                       const parsedArgs = JSON.parse(func.arguments);
                       const toolResult = await functionsMap[func.name](parsedArgs);
-                      if (socket) { 
+                      if (socket) {
                         sendSocketMessage(socket, {
                           type: "FunctionCallResponse",
-                          id: func.id, 
-                          name: func.name, 
-                          content: toolResult.toolResponse, 
+                          id: func.id,
+                          name: func.name,
+                          content: toolResult.toolResponse,
                         });
                       }
                     } catch (err: any) {
                       console.error("Error processing function call or parsing arguments:", func.name, err);
-                      if (socket) { 
+                      if (socket) {
                         sendSocketMessage(socket, {
                           type: "FunctionCallResponse",
                           id: func.id,
@@ -636,7 +647,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         }
       } catch (error) {
         if (typeof data === "string" && data.trim() !== "") {
-            console.error("Failed to parse WebSocket message or process data:", data, error);
+          console.error("Failed to parse WebSocket message or process data:", data, error);
         }
       }
     }
@@ -664,39 +675,39 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Moved handleDisconnect and sendSystemMessage before the useEffect that uses handleDisconnect
   const handleDisconnect = useCallback((refresh: boolean = true) => {
     console.log("Disconnecting and resetting state...");
-    
+
     if (userInactivityTimer.current) {
       clearInterval(userInactivityTimer.current);
       userInactivityTimer.current = null;
     }
-    
+
     if (keepAliveTimer.current) {
       clearInterval(keepAliveTimer.current);
       keepAliveTimer.current = null;
     }
-    
-    setIsDisconnected(true); 
-    setIsInitialized(false); 
-    setSettingsApplied(false); 
-    setTime(interviewLength * 60); 
-    
+
+    setIsDisconnected(true);
+    setIsInitialized(false);
+    setSettingsApplied(false);
+    setTime(interviewLength * 60);
+
     scheduledAudioSources.current.forEach(source => {
       if (source) {
         try { source.stop(); source.disconnect(); } catch (err) { /* ignore */ }
       }
     });
     scheduledAudioSources.current = [];
-    
+
     if (audioContext.current && audioContext.current.state !== 'closed') {
       try { audioContext.current.suspend(); } catch (err) { /* ignore */ }
     }
-    
+
     if (stopMicrophone) stopMicrophone();
-    if (disconnectFromDeepgram) disconnectFromDeepgram(); 
-    
-    if(refresh) {
-        window.location.reload();
-    } 
+    if (disconnectFromDeepgram) disconnectFromDeepgram();
+
+    if (refresh) {
+      window.location.reload();
+    }
   }, [interviewLength, stopMicrophone, disconnectFromDeepgram, setIsDisconnected, setIsInitialized, setSettingsApplied, setTime]);
 
   const sendSystemMessage = (text: string) => {
@@ -709,9 +720,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         // It seems fullSystemPrompt already contains the base prompt + interview details.
         // We are appending the new 'text' (e.g., code output or time left) to this existing full prompt.
         const updatedPrompt = `${fullSystemPrompt}\n\nThere are ${minutesLeft} minutes left in the interview. \n\n${text}`;
-        
+
         sendSocketMessage(socket, {
-          type: "UpdatePrompt", 
+          type: "UpdatePrompt",
           prompt: updatedPrompt
         });
       } catch (error) {
@@ -722,35 +733,35 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   useEffect(() => {
     if (!isInitialized || isDisconnected) return;
-    
+
     userInactivityTimer.current = setInterval(() => {
       const currentTime = Date.now();
       const elapsedMinutes = (currentTime - lastUserSpeakingTime.current) / (1000 * 60);
-      
+
       if (elapsedMinutes >= 5) {
         console.log("User inactive for 5 minutes, disconnecting...");
         toast.info("No activity detected for 5 minutes. Restarting interview...");
-        handleDisconnect(true); 
+        handleDisconnect(true);
       }
     }, 30000);
-    
+
     return () => {
       if (userInactivityTimer.current) {
         clearInterval(userInactivityTimer.current);
       }
     };
   }, [isInitialized, isDisconnected, handleDisconnect]); // handleDisconnect is now defined before this useEffect
-  
+
   useEffect(() => {
     if (!isInitialized || isDisconnected || !socket || socketState !== 1) return;
-    
+
     keepAliveTimer.current = setInterval(() => {
       if (socket && socket.readyState === WebSocket.OPEN) {
         // console.log("Sending keep-alive to maintain agent audio connection"); // V1 might not need client-side keep-alive
         // sendSocketMessage(socket, { type: "KeepAlive" }); // KeepAlive might be different or not needed in V1
       }
-    }, 28000); 
-    
+    }, 28000);
+
     return () => {
       if (keepAliveTimer.current) {
         clearInterval(keepAliveTimer.current);
@@ -758,30 +769,30 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       }
     };
   }, [isInitialized, isDisconnected, socket, socketState]);
-  
+
   const handleConnect = async () => {
     try {
       if (coinCount < interviewLength) {
         toast.error(`Error: Insufficient coins. You need ${interviewLength} coins to conduct this interview.`);
         return;
       }
-      
+
       if (!microphone) {
         toast.error('Microphone access is required for the interview. Please grant permission.');
         requestMicrophonePermission();
         return;
       }
-      
+
       if (audioContext.current && audioContext.current.state === 'suspended') {
         await audioContext.current.resume();
       }
-      
+
       lastUserSpeakingTime.current = Date.now();
-      
+
       setIsInitialized(true);
       // initializeFeedback should be fine if it's just DB work
-      if (userId && interviewId) await initializeFeedback(userId, interviewId); 
-      
+      if (userId && interviewId) await initializeFeedback(userId, interviewId);
+
       // Connection to Deepgram (and sending initial settings) is handled by useEffect for connectToDeepgram
       // and the socket 'open' event listener.
     } catch (error) {
@@ -797,11 +808,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     } else if (processor && socket) {
       processor.onaudioprocess = sendMicToSocket(socket);
       setIsMicManuallyMuted(false);
-      
+
       if (status === VoiceBotStatus.SLEEPING && startListening) {
         startListening(true);
       }
-      
+
       if (isWaitingForUserVoiceAfterSleep && isWaitingForUserVoiceAfterSleep.current) {
         isWaitingForUserVoiceAfterSleep.current = false;
       }
@@ -823,13 +834,13 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   const handleVoiceBotAction = () => {
     console.log("Starting voice interaction");
-    
+
     if (audioContext.current && audioContext.current.state === 'suspended') {
       audioContext.current.resume().catch(err => {
         console.error("Failed to resume audio context:", err);
       });
     }
-    
+
     if (!isInitialized) {
       return;
     }
@@ -847,7 +858,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       const confirmed = window.confirm("You are leaving the interview. Confirm to save progress and clean up?");
       if (confirmed) {
         console.log("User confirmed cleanup after route change.");
-        cleanupAndNavigate(url, true); 
+        cleanupAndNavigate(url, true);
       } else {
         console.log("User cancelled cleanup after route change. Attempting to navigate back.");
         router.push(currentPath);
@@ -872,8 +883,8 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       // This is a last resort cleanup attempt if beforeunload didn't stop the navigation.
       // It's particularly for mobile where beforeunload might not be as effective or for bfcache.
       if (isInitialized && !manuallyDisconnected) { // Check manuallyDisconnected to avoid double cleanup if quit was intentional
-          console.log("handlePageHide triggered, attempting cleanup via cleanupAndNavigate (skipNavigation=true)");
-          cleanupAndNavigate("dummy_url_not_used_for_pagehide", true);
+        console.log("handlePageHide triggered, attempting cleanup via cleanupAndNavigate (skipNavigation=true)");
+        cleanupAndNavigate("dummy_url_not_used_for_pagehide", true);
       }
     };
 
@@ -899,11 +910,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // If a "soft" start over without reload was intended, handleDisconnect(false) path would need more work
   // including calling resetConnectionState from Deepgram context.
 
-// ... rest of the UI remains the same as it's mostly visual and button handlers now call updated logic ...
-// Make sure all functions from contexts (useMicrophone, useDeepgram, useVoiceBot) are checked for null if they are optional
+  // ... rest of the UI remains the same as it's mostly visual and button handlers now call updated logic ...
+  // Make sure all functions from contexts (useMicrophone, useDeepgram, useVoiceBot) are checked for null if they are optional
 
-// ... (Existing JSX starting from return statement)
-return (
+  // ... (Existing JSX starting from return statement)
+  return (
     <div className="flex flex-col call-view h-full">
       {isBehavioral ? (
         // Original UI for Behavioral interviews
@@ -913,7 +924,7 @@ return (
               Time: {formatTime(time)}
             </div>
           </div>
-         
+
           <div className="flex flex-row gap-4 w-6xl max-w-[90vw]">
             <div className="card-interviewer">
               <div className="avatar">
@@ -930,7 +941,7 @@ return (
               </div>
             </div>
           </div>
-            
+
           <div className="w-full flex max-sm:flex-col max-sm items-center justify-center gap-6 mb-4 font-bold rounded-sm">
             {!isInitialized ? (
               <>
@@ -959,9 +970,9 @@ return (
               <>
                 <Button
                   onClick={() => {
-                     if (window.confirm("Are you sure you want to start over? This will end the current interview and reset its state.")) {
-                        handleDisconnect(true); // true for page refresh
-                     }
+                    if (window.confirm("Are you sure you want to start over? This will end the current interview and reset its state.")) {
+                      handleDisconnect(true); // true for page refresh
+                    }
                   }}
                   className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                 >
@@ -982,7 +993,7 @@ return (
               </>
             )}
           </div>
-          
+
           <div className="h-20 md:h-12 text-sm md:text-base mt-2 flex flex-col items-center text-gray-200 overflow-y-auto">
             {messages.length > 0 ? <Transcript /> : null}
           </div>
@@ -995,13 +1006,13 @@ return (
               Time: {formatTime(time)}
             </div>
           </div>
-          
+
           <div className="border rounded-lg flex-grow flex flex-row items-center justify-center overflow-hidden">
             {isInitialized
-            ?
+              ?
               <>
                 <div
-                    className="max-w-lg h-full px-4 py-3 border-r overflow-y-scroll"
+                  className="max-w-lg h-full px-4 py-3 border-r overflow-y-scroll"
                 >
                   <div
                     className="text-base whitespace-normal break-words"
@@ -1010,15 +1021,15 @@ return (
                 </div>
 
                 <div className="w-full h-full">
-                  <CodeEditor 
+                  <CodeEditor
                     onRun={updateCodeOutput} // Pass the functions directly
                     onCodeChange={updateCode} // Pass the functions directly
                   />
                 </div>
               </>
-            :
+              :
               <div>
-                  Press: Start Interview
+                Press: Start Interview
               </div>
             }
           </div>
@@ -1026,7 +1037,7 @@ return (
           <div className="h-20 md:h-12 text-sm md:text-base mt-2 flex flex-col items-center text-gray-200 overflow-y-auto">
             {messages.length > 0 ? <Transcript /> : null}
           </div>
-          
+
           <div className="py-4">
             <div className="w-full flex flex-wrap items-center justify-center gap-6 font-bold">
               {!isInitialized ? (
@@ -1059,9 +1070,9 @@ return (
                    */}
                   <Button
                     onClick={() => {
-                       if (window.confirm("Are you sure you want to start over? This will end the current interview and reset its state.")) {
-                          handleDisconnect(true);
-                       }
+                      if (window.confirm("Are you sure you want to start over? This will end the current interview and reset its state.")) {
+                        handleDisconnect(true);
+                      }
                     }}
                     className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                   >

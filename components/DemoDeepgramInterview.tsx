@@ -192,40 +192,26 @@ function DemoDeepgramInterview() {
   useEffect(() => {
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        // System prompt for the demo
-        
-        if (stsConfig.context) {
-          delete stsConfig.context;
+        const initialSettings = JSON.parse(JSON.stringify(stsConfig));
+
+        if (initialSettings.agent && initialSettings.agent.think) {
+          initialSettings.agent.think.prompt = demoSystemPrompt;
+          initialSettings.agent.think.provider = {
+            ...(initialSettings.agent.think.provider || {}),
+            model: "gpt-4.1-mini"
+          };
+          setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
+        }
+        if (initialSettings.agent?.think?.functions) {
+          delete initialSettings.agent.think.functions;
         }
 
-        const interviewStsConfig = {
-          ...stsConfig,
-          agent: {
-            ...stsConfig.agent,
-            think: {
-              ...stsConfig.agent.think,
-              instructions: demoSystemPrompt, // Use the new demo prompt
-            },
-          },
-          context: {
-            messages: [
-              {
-                content:
-                  "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!",
-                role: "assistant",
-              },
-            ],
-            replay: true,
-          },
-        };
-
-        // Remove functions for the demo instance
-        if (interviewStsConfig.agent?.think?.functions) {
-          delete interviewStsConfig.agent.think.functions;
+        let combinedStsConfig = initialSettings;
+        if (applyParamsToConfig) {
+          combinedStsConfig = applyParamsToConfig(initialSettings);
+          combinedStsConfig.agent.greeting = "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!";
         }
 
-        const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
-        // Send the configuration first
         sendSocketMessage(socket, combinedStsConfig);
 
         setTimeout(() => {
@@ -241,7 +227,7 @@ function DemoDeepgramInterview() {
       };
     }
   }, [
-    microphoneState, socket, isDisconnected, manuallyDisconnected, 
+    microphoneState, socket, isDisconnected, manuallyDisconnected,
     applyParamsToConfig, startMicrophone, startListening, microphone,
   ]);
 
@@ -337,13 +323,13 @@ function DemoDeepgramInterview() {
 
   useEffect(() => {
     if (previousInstructionsRef.current !== instructions && instructions && socket && socketState === 1 && settingsApplied) {
-        console.log("Updating demo prompt due to instructions change (from query params) using UpdatePrompt.");
-        const newPromptContent = `${demoSystemPrompt}\n${instructions}`;
+      console.log("Updating demo prompt due to instructions change (from query params) using UpdatePrompt.");
+      const newPromptContent = `${demoSystemPrompt}\n${instructions}`;
 
-        sendSocketMessage(socket, {
-            type: "UpdatePrompt",
-            prompt: newPromptContent,
-        });
+      sendSocketMessage(socket, {
+        type: "UpdatePrompt",
+        prompt: newPromptContent,
+      });
     }
     previousInstructionsRef.current = instructions;
   }, [
@@ -351,7 +337,7 @@ function DemoDeepgramInterview() {
     socket,
     socketState,
     settingsApplied,
-    demoSystemPrompt 
+    demoSystemPrompt
   ]);
 
   useEffect(() => {
@@ -653,7 +639,7 @@ function DemoDeepgramInterview() {
     ) {
       try {
         const updatedPrompt = `${demoSystemPrompt}\n\n${text}`;
-        
+
         sendSocketMessage(socket, {
           type: "UpdatePrompt",
           prompt: updatedPrompt,
@@ -768,9 +754,8 @@ function DemoDeepgramInterview() {
               <>
                 <Button
                   onClick={toggleMicrophone}
-                  className={`${
-                    processor?.onaudioprocess ? "bg-red-400" : "bg-green-500"
-                  }
+                  className={`${processor?.onaudioprocess ? "bg-red-400" : "bg-green-500"
+                    }
                     w-[150px] text-white font-semibold hover:cursor-pointer`}
                 >
                   {processor?.onaudioprocess

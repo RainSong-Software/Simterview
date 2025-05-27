@@ -31,7 +31,7 @@ const baseConfig = {
         model: "gpt-4.1-mini",
         temperature: 0.7,
       },
-      endpoint: { 
+      endpoint: {
         url: "https://api.openai.com/v1/chat/completions",
         headers: {
           "authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
@@ -186,4 +186,3 @@ export const greetingMessages = [
   "Hey! How's it going today?",
   "Hey there, how are you?",
 ];
-
