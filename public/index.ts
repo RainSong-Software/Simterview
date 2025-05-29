@@ -1,6 +1,8 @@
 export const interviewGenerationExamples = `
 TYPE="behavioral":
-  GEN 5-7 Qs: background, teamwork, problem-solving, leadership, adaptability. NO code/algo Qs.
+  Search the web and find questions that have been asked in a behavioral interview for that specific role at that specific company.
+  If you can find questions that have been asked in a behavioral interview for that specific role at that specific company, use them.
+  If you can't find questions or can't find at least 7 questions that have been asked in a behavioral interview for that specific role at that specific company, generate up to 7 questions related to: background, teamwork, problem-solving, leadership, adaptability. NO code/algo questions.
   1st Q: Self-intro.
   Mix generic/nuanced Qs. Tailor to job desc.
   TXT2SPEECH safe: NO / * or special chars.
