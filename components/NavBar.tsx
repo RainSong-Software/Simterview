@@ -62,12 +62,12 @@ const NavBar = ({ username, userId, coinCount }: { username: string, userId: str
             {(username !== "")
               ? (
                 <div className="flex items-center gap-4 ml-4">
-                  <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-300">
+                  <Link href="/simcoins" className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-300 hover:opacity-80">
                     <Image src="/coin.png" alt="coin count" width={20} height={20} />
-                    {coinCount}
-                  </div>
+                    {coinCount > 0 ? coinCount : <span className="text-xs whitespace-nowrap">Purchase SimCoins</span>}
+                  </Link>
                   <Link href={userProfilePath} className="flex items-center gap-2 hover:opacity-80">
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-white">
                       <span className="text-sm font-bold">{username.charAt(0).toUpperCase()}</span>
                     </div>
                     <span className="font-medium text-sm text-slate-700 dark:text-slate-200 ">{username}</span>
@@ -87,7 +87,7 @@ const NavBar = ({ username, userId, coinCount }: { username: string, userId: str
           <div className="flex sm:hidden items-center gap-3">
             {username !== "" && (
               <Link href={userProfilePath} className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-white">
                   <span className="text-sm font-bold">{username.charAt(0).toUpperCase()}</span>
                 </div>
               </Link>
@@ -128,7 +128,13 @@ const NavBar = ({ username, userId, coinCount }: { username: string, userId: str
                   <span>{username}</span>
                   <div className="flex items-center gap-1 mt-1">
                     <Image src="/coin.png" alt="coin count" width={16} height={16} />
-                    <span>{coinCount} Coins</span>
+                    {coinCount > 0 ? (
+                      <span>{coinCount} Coins</span>
+                    ) : (
+                      <Link href="/simcoins" className="text-blue-500 hover:underline text-xs whitespace-nowrap" onClick={() => setIsMobileMenuOpen(false)}>
+                        Purchase SimCoins
+                      </Link>
+                    )}
                   </div>
                 </div>
               </>
