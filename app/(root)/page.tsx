@@ -5,6 +5,7 @@ import React from "react";
 import { Metadata } from "next";
 import { ContainerTextFlip } from "@/components/ui/container-text-flip";
 import { cn } from "@/lib/utils";
+// import GlowingButton from "@/components/ui/glowing-button";
 
 export const metadata: Metadata = {
   title: "Simterview | AI Mock Interviews for Software Engineers",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 
 const Page = () => {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center pt-8">
       <div
         className={cn(
           "absolute inset-0",
@@ -46,6 +47,11 @@ const Page = () => {
             Your AI Interview coach prepares you for FAANG-level interviews.
           </p>
           <div className="mt-4">
+
+            {/* Glowing Button
+            <Link href="/demo">
+              <GlowingButton text="Try Demo Interview" />
+            </Link> */}
             <Button
               asChild
               className="bg-white text-black  py-4 px-8 text-md font-bold rounded-md shadow-lg hover:shadow-xl transition-all duration-200"
