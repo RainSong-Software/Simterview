@@ -8,6 +8,21 @@ import { GoogleGenAI, Type } from "@google/genai";
  */
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY });
 
+interface InterviewData {
+  type: string;
+  name: string;
+  difficulty: string;
+  length: number;
+  createdBy: string;
+  createdAt: string;
+  description?: string;
+  questions?: string[];
+  editorial?: string;
+  problemId?: string;
+  questionType?: string;
+  questionDifficulty?: string;
+}
+
 /**
  * Generates a custom interview based on specified parameters.
  * Now uses a pre-populated question bank for technical questions to avoid timeouts.
@@ -30,7 +45,7 @@ export async function generateCustomInterview(type: string, role: string, length
   
   try {
     // Create new interview object with placeholder
-    const newInterview: Record<string, any> = {
+    const newInterview: InterviewData = {
       type,
       name: `${role} interview`,
       difficulty,
@@ -219,7 +234,7 @@ export async function generateCustomInterview(type: string, role: string, length
         // Add solution if available, or use an empty string as fallback
         if (problemData.editorial) {
           newInterview.editorial = problemData.editorial;
-          console.log(` Solution found, length: ${newInterview.editorial.length} characters`);
+          console.log(` Solution found, length: ${newInterview.editorial!.length} characters`);
         } else {
           console.log(` No solution found in database, using empty string`);
           newInterview.editorial = "";
@@ -309,9 +324,9 @@ async function analyzeJobDescription(jobDescription: string | undefined): Promis
           } else {
             console.log(`Retrieved empty skills array, trying fallback method`);
           }
-        } catch (parseError) {
-          console.log(` Failed to parse skills as JSON array, trying fallback method`);
-          console.log(` Raw response text: ${response.text.substring(0, 100)}...`);
+        } catch (_parseError: unknown) {
+          console.log(` Failed to parse skills as JSON array, trying fallback method. Error: ${(_parseError as Error).message}`);
+          console.log(` Raw response text: ${response.text!.substring(0, 100)}...`);
         }
       } else {
         console.log(` Empty response from AI model, trying fallback method`);
