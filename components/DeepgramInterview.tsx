@@ -773,7 +773,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const handleConnect = async () => {
     try {
       if (coinCount < interviewLength) {
-        toast.error(`Error: Insufficient coins. You need ${interviewLength} coins to conduct this interview.`);
+        toast.error(`Error: Insufficient coins. You need ${interviewLength} coins to conduct this interview. Please purchase more coins in your profile.`);
         return;
       }
 
