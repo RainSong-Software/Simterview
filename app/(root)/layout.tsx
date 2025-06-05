@@ -10,7 +10,6 @@ const RootLayout = async ({children}: {children: ReactNode}) => {
   const coinCount = currentUser? currentUser.coinCount : 0
   return (
     <div className="root-layout">
-
       <NavBar username={username} userId={userId} coinCount={coinCount} />
       <main className="flex-1 flex flex-col">
         {children}
