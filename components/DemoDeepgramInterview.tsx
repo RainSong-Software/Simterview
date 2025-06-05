@@ -169,16 +169,6 @@ function DemoDeepgramInterview() {
   }, [setupMicrophone, microphoneState]);
 
   useEffect(() => {
-    if (microphoneState === 1) {
-      setMicPermissionDenied(false);
-    } else if (microphoneState === null) {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => { setMicPermissionDenied(false); })
-        .catch((err) => { if (err.name === "NotAllowedError") setMicPermissionDenied(true); });
-    }
-  }, [microphoneState]);
-
-  useEffect(() => {
     let wakeLock: any;
     const requestWakeLock = async () => {
       try {
@@ -480,30 +470,26 @@ function DemoDeepgramInterview() {
 
   // Request microphone permissions
   const requestMicrophonePermission = async () => {
+    if (!setupMicrophone) {
+      toast.error("Microphone setup function is not available. Please refresh.");
+      return;
+    }
     try {
-      // This will trigger the browser's permission dialog
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // If we got here, permission was granted
-      setMicPermissionDenied(false);
-
-      // Only call setupMicrophone if it's not already initialized
-      if (microphoneState === null || microphoneState === 0) {
-        await setupMicrophone();
-      }
-
-      toast.success("Microphone access granted!");
+      // Rely on setupMicrophone from context to trigger the browser prompt and handle setup
+      await setupMicrophone(); 
+      setMicPermissionDenied(false); // If setupMicrophone resolves, permission was granted/mic is ready
     } catch (error) {
-      console.error("Failed to get microphone permission:", error);
-      setMicPermissionDenied(true);
+      console.error("Failed to get microphone permission via setupMicrophone:", error);
+      setMicPermissionDenied(true); // Explicitly set denied if setupMicrophone fails
 
+      // @ts-expect-error Check error.name; error is of type unknown, so property access is unsafe.
       if (error.name === "NotAllowedError") {
         toast.error(
           "Microphone access denied. Please allow microphone access in your browser settings."
         );
       } else {
         toast.error(
-          "Could not access microphone. Please check your device settings."
+          "Could not access microphone. Please check your device settings and try again."
         );
       }
     }
