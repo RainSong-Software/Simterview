@@ -2,7 +2,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const GlowingButton = ({text}: {text: string}) => {
+const GlowingButtonReverse = ({ text }: { text: string }) => {
   return (
     <StyledWrapper>
       <button id="bottone1"><strong>{text}</strong></button>
@@ -17,13 +17,13 @@ const StyledWrapper = styled.div`
    padding-bottom: 12px;
    padding-top: 12px;
    border-radius: 9px;
-   background: white;
-   border: none;
+   background: #020617;
+   border: 1px solid white;
    font-family: inherit;
    text-align: center;
    cursor: pointer;
    transition: 0.4s;
-   color: black;
+   color: white;
    min-width: 220px;
   }
 
@@ -36,4 +36,4 @@ const StyledWrapper = styled.div`
    box-shadow: 7px 5px 56px -10px rgba(255, 255, 255, 0.75);
   }`;
 
-export default GlowingButton;
+export default GlowingButtonReverse;
