@@ -18,7 +18,7 @@ const ONE_WEEK = 60 * 60 * 24 * 7
  * 
  * @type {number}
  */
-const DEFAULT_COIN_COUNT = 0;
+const DEFAULT_COIN_COUNT = 60;
 
 /**
  * Handles GitHub authentication and user creation in Firestore.
