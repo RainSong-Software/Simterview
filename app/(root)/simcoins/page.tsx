@@ -12,7 +12,7 @@ function Button({ onClick, children }: { onClick: () => void; children: React.Re
   return (
     <button
       onClick={onClick}
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+      className="w-full btn-primary text-black mt-auto"
     >
       {children}
     </button>
@@ -75,21 +75,39 @@ export default function SimCoinPage() {
     }
   };
 
-  return (
-    <main className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Purchase SimCoins</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {bundles.map((bundle) => (
-          <div key={bundle.name} className="border p-4 rounded shadow text-center">
-            <h2 className="text-xl font-semibold mb-2">{bundle.name}</h2>
-            <p className="text-sm text-gray-500 mb-1">{bundle.simcoins} SimCoins</p>
-            <p className="text-2xl font-bold mb-4">{bundle.price}</p>
-            <Button onClick={() => handleBuy(bundle.priceId)}>
-              {loading ? "Loading..." : "Buy Now"}
-            </Button>
-          </div>
-        ))}
-      </div>
-    </main>
-  );
-}
+return (
+  <main className="w-full px-6 py-20 bg-[#0b0e1c] text-white">
+    <h1 className="text-5xl font-bold mb-4 text-center">Purchase SimCoins</h1>
+    <p className="text-lg text-center text-gray-400 mb-16">Choose the bundle that works for you</p>
+
+    <div className="max-w-screen-xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      {bundles.map((bundle, index) => (
+        <div
+          key={bundle.name}
+          className="relative flex flex-col justify-between border border-gray-700 p-10 rounded-2xl shadow-lg text-center bg-[#11152a] w-full h-full"
+        >
+          {/* Top Badge */}
+          {index === 1 && (
+            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+              Better Value
+            </span>
+          )}
+          {index === 2 && (
+            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+              Best Value
+            </span>
+          )}
+
+          {/* Card Content */}
+          <h2 className="text-2xl font-bold mb-2">{bundle.name}</h2>
+          <p className="text-sm text-gray-400 mb-1">{bundle.simcoins} SimCoins</p>
+          <p className="text-3xl font-extrabold mb-6">{bundle.price}</p>
+          <Button onClick={() => handleBuy(bundle.priceId)}>
+            {loading ? "Loading..." : "Buy Now"}
+          </Button>
+        </div>
+      ))}
+    </div>
+  </main>
+  ); 
+};
