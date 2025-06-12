@@ -24,19 +24,19 @@ const bundles = [
   {
     name: "Starter",
     simcoins: 60,
-    price: "$5",
+    price: "$6.88",
     priceId: "price_1RSmQ91aYZsZjxD5M0WBzr2U", //price ID from Stripe 
   },
   {
     name: "Pro",
     simcoins: 150,
-    price: "$12",
+    price: "$13.88",
     priceId: "price_1RSmQ71aYZsZjxD5rHrVkdIG", //price ID from Stripe 
   }, 
   {
     name: "Elite",
     simcoins: 400,
-    price: "$30",
+    price: "$28.88",
     priceId: "price_1RSmQ61aYZsZjxD53VL9ZAWT", //price ID from Stripe 
   },
 ];
