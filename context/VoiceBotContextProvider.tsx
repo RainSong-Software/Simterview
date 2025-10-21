@@ -277,7 +277,7 @@ interface Props {
 export function VoiceBotProvider({ children }: Props) {
   const [state, dispatch] = useReducer(voiceBotReducer, initialState);
   const isWaitingForUserVoiceAfterSleep = useRef<boolean>(false);
-  const sleepInterval = useRef<NodeJS.Timeout | undefined>(undefined);
+  //const sleepInterval = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const addVoicebotMessage = useCallback((newMessage: VoiceBotMessage) => {
     dispatch({ type: ADD_MESSAGE, payload: newMessage });
