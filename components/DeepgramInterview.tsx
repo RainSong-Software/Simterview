@@ -332,7 +332,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           console.log("initialSettings.agent.think.prompt", initialSettings.agent.think.prompt);
           // Model selection based on interview type
           // trained model: ft:gpt-4.1-2025-04-14:rainsong:technical2:BaRmqRor
-          initialSettings.agent.think.provider.model = isBehavioral ? "gpt-5-mini-2025-08-07" : "gpt-5-2025-08-07";
+          initialSettings.agent.think.provider.model = isBehavioral ? "gpt-4.1" : "gpt-4.1";
           // Store the potentially modified provider for later use in prompt updates
           setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
         }
