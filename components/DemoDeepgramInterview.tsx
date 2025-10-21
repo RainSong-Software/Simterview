@@ -188,7 +188,7 @@ function DemoDeepgramInterview() {
           initialSettings.agent.think.prompt = demoSystemPrompt;
           initialSettings.agent.think.provider = {
             ...(initialSettings.agent.think.provider || {}),
-            model: "gpt-4.1-mini"
+            model: "gpt-5-mini-2025-08-07"
           };
           setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
         }
