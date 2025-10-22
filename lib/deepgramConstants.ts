@@ -28,7 +28,7 @@ const baseConfig = {
     think: {
       provider: {
         type: "open_ai", // change to "custom"
-        model: "4.1",
+        model: "gpt-5-chat-latest",
       },
       endpoint: {
         url: "https://api.openai.com/v1/chat/completions",
