@@ -188,7 +188,7 @@ function DemoDeepgramInterview() {
           initialSettings.agent.think.prompt = demoSystemPrompt;
           initialSettings.agent.think.provider = {
             ...(initialSettings.agent.think.provider || {}),
-            model: "4.1"
+            model: "gpt-5-chat-latest"
           };
           setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
         }
